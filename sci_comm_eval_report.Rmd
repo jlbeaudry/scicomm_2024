@@ -1,0 +1,388 @@
+---
+title: "Animate Your Science Visual Storytelling Workshop"
+subtitle: "Evaluation (November 2023)"
+# author: "Jen Beaudry"
+# date: "2024-02-09"
+output: pdf_document
+editor_options: 
+  chunk_output_type: console
+header-includes:
+  - \usepackage{caption}
+  - \usepackage{titling}
+    \setlength{\droptitle}{-2cm} # removes some of the white space above title
+  - \pretitle{\begin{center}
+    \includegraphics[width=1.5in, height=1.5in]{flinders-university-horizontal-master.png}\LARGE\\} # adds logo
+  - \posttitle{\end{center}}
+  - \usepackage{fancyhdr}
+  - \fancypagestyle{plain}{\pagestyle{fancy}} # sets the footer on page 1
+  - \pagestyle{fancy} # sets the footer on page 2 and beyond
+  - \fancyhf{} # clears existing header & footer
+  - \renewcommand{\headrulewidth}{0pt} # removes the line from the header
+  - \fancyfoot[L]{Jen Beaudry} # my name in footer
+  - \fancyfoot[R]{\thepage} # page number in foooter
+---
+
+```{r setup, include=FALSE}
+
+knitr::opts_chunk$set(echo = FALSE,
+                      include = TRUE, 
+                      eval = TRUE)
+
+```
+
+```{r library, include=FALSE}
+
+# devtools::install_github("adletaw/captioner")
+
+library(here)
+library(tidyverse)
+library(kableExtra)
+library(RColorBrewer)
+library(captioner)
+
+```
+
+```{r functions, include=FALSE}
+
+styler_pdf <- function(dat) {
+  dat %>%
+     kable_styling(full_width = F, 
+                latex_options = c("striped", "HOLD_position"))
+}
+
+source(here("..", "functions", "meta_rename.R"))
+source(here("..", "functions", "ratings_summary.R"))
+
+table_nums <- captioner(prefix = "Table")
+fig_nums <- captioner(prefix = "Figure")
+
+```
+
+```{r load data, include=FALSE}
+
+df <- read_csv(here::here("data", "sci_comm_processed_data.csv"), lazy = FALSE)
+
+```
+
+```{r code factors, include=FALSE}
+
+
+# turn all ratings variables into factors, use datapasta to do this!
+# the code below works
+
+df$expectations <- factor(df$expectations, levels = c("Exceeded my expectations", "Met my expectations", "Partly met my expectations", "Did not meet my expectations"))
+df$follow_up <- factor(df$follow_up)
+
+# work with all rating items together because they have the same levels
+
+cols <- c(
+  "understanding",
+  "expert",
+  "engaging",
+  "balance",
+  "storytelling",
+  "reengagement")
+
+
+# turn the cols columns into factors
+df <- df %>% 
+  mutate(across (all_of(cols), ~factor(., 
+                                       levels = c("N/A", 
+                                           "Strongly disagree",
+                                           "Somewhat disagree",
+                                           "Neither agree nor disagree",
+                                           "Somewhat agree",
+                                           "Strongly agree"))))
+
+```
+
+```{r captions, include = FALSE}
+
+table_nums(name = "expectations", 
+           caption = "'Please elaborate on how the workshop aligned with your expectations.'")
+
+table_nums(name = "action", 
+          caption = "'Did this workshop inspire you to take any immediate action(s)?'")
+
+table_nums(name = "best_parts",
+             caption = "'What were the best parts of the workshop?'")
+
+table_nums(name = "improvement",
+             caption = "'Any suggestions for improvement?'")
+
+table_nums(name = "anything_else",
+             caption = "'Anything else you want us to know?'")
+
+fig_nums(name = "ratings_summary", 
+         caption = "Ratings of different aspects of the workshop")
+
+```
+
+
+
+```{r sessions attendance}
+
+participants <- 30
+
+#breadcrumb for caption: \captionsetup[table]{labelformat=empty}
+# that's if I include header use caption in the yaml
+
+```
+
+
+Dr Tullio Rossi from Animate your Science designed and delivered the 
+*Visual Storytelling* workshop. This workshop was offered to our research community
+for the first time in October 2023; the workshop was capped at 30 participants. 
+Of the `r participants` participants in the workshop, `r nrow(df)` completed this evaluation.
+
+We asked participants to rate a number of items about the workshop and the trainer 
+on a scale from 'strongly disagree' to 'strongly agree' (see 
+`r fig_nums(name = "ratings_summary", display = "cite")`).
+
+\
+`r fig_nums(name = "ratings_summary")`
+
+```{r creating tibbles for all ratings, include = FALSE}
+
+# get total n to calculate percentages
+
+total_n <- length(df$id)
+
+# SELECT THE RATING COLUMNS & SAVE AS A TIBBLE I WANT TO SUMMARISE & PLOT USING THE RATING_SUMMARY FUNCTION
+
+ratings <- df %>% 
+  select(c(
+  "understanding",
+  "expert",
+  "engaging",
+  "balance",
+  "storytelling",
+  "reengagement"))
+
+# UPDATE THE COLUMNS PARAMETER WITH THE STRINGS FROM ABOVE
+
+columns <- cols <- c(
+  "understanding",
+  "expert",
+  "engaging",
+  "balance",
+  "storytelling",
+  "reengagement")
+
+# RUN THE FUNCTION & APPLY TO ALL COLUMNS IN OUR DF
+
+ratings_summary <- purrr::map_dfr(columns, .f = function(column) {
+	ratings_summary(ratings, column)
+})
+
+# remove the NA responses
+ratings_summary <- na.omit(ratings_summary)
+
+
+# also, figure out how many responded with the agree ratings. I use these in the 
+  # text summaries later
+
+# [breadcrumb: can I use apply for this too?? need to do this later!]
+
+agree <- c("Strongly agree", "Somewhat agree")
+
+
+```
+
+```{r plot the ratings}
+
+# Relevel the responses [changes order in ggplot, but not the dataframe]
+# plot it first to see if I need to do this
+
+# tor_rating$rating <- factor (rating$rating, levels = c("Strongly agree",
+#                                            "Somewhat agree",
+#                                            "Neither agree nor disagree",
+#                                            "Somewhat disagree",
+#                                            "Strongly disagree"))
+
+# put them in reverse order of how I want them to appear
+ratings_summary$rating_item <-
+  factor (
+    ratings_summary$rating_item,
+    levels = c(
+  "understanding",
+  "expert",
+  "engaging",
+  "balance",
+  "storytelling",
+  "reengagement")
+    )
+
+# [breadcrumb] I can delete this later, but this is useful to create the plot_labs
+
+# labs <- meta %>%
+#   filter(scale == "common_ratings") %>%
+#   pull(item_text_short) %>%
+# datapasta::vector_paste_vertical()
+
+
+# plot it
+
+
+ggplot(ratings_summary, aes(fill = rating, y = percentage, x = rating_item)) +
+  geom_bar(position="fill", stat="identity", colour = "black") +
+  scale_fill_brewer(
+    palette = "Blues",
+    na.value = "grey50",
+    direction = 1,
+    labels = c(
+      "N/A",
+      "Strongly disagree",
+      "Somewhat disagree",
+      "Neither agree nor disagree",
+      "Somewhat agree",
+      "Strongly agree"
+    )
+  ) +
+  labs (x = element_blank(),
+        y = "Percentage") +
+  theme_classic() +
+theme(legend.title = element_blank()) +
+    coord_flip() +
+  scale_x_discrete(
+    labels = c(
+      "The workshop provided me with \na greater understanding of \nhow to share my research through videos",
+      "The trainer is an expert in \nthe sector",
+      "The trainer was very engaging",
+      "The workshop had a good balance \nof working time and presentation",
+      "The workshop provided valuable \ninsights about storytelling",
+      "I would attend another workshop \nfrom this trainer"
+ )
+) +
+  scale_y_continuous(labels = c("0", "25", "50", "75", "100"))
+
+# FYI: the labels are always in opposite directions from the data set! Is it? I think they changed it!
+
+```
+
+\newpage
+
+```{r expectations data, include = TRUE}
+
+expect <- df %>% 
+    dplyr::group_by (expectations) %>% 
+  count()
+
+```
+
+
+All respondents indicated that the program met or exceeded their expectations. 
+Of the `r nrow(df)` respondents, `r round((expect[1,2]/nrow(df))*100,2)`% indicated 
+that it exceeded their expectations. 
+
+
+```{r follow_up data, include = TRUE}
+
+follow <- df %>% 
+    dplyr::group_by (follow_up) %>% 
+  count()
+
+```
+
+
+We also asked if they would be interested in attending a follow-up session, 
+which Tullio offers to give participants an opportunity to put their new skills 
+into practice. After creating their video, they would receive feedback from 
+Tullio and the group about what they did well and what they could do to improve
+their storytelling.
+
+Most respondents (`r round((follow[2,2]/nrow(df))*100,2)`%)
+indicated that they would like the opportunity to attend a follow
+up session.
+
+We also asked them some open-ended questions about whether this workshop 
+inspired them to take immediate action, what the best parts of the workshop
+were, their suggestions for improvement, and anything else that we would like 
+them to know. Their responses are presented in the following tables. 
+
+```{r action table, include = TRUE}
+
+action <- df %>% 
+    mutate(Participant = 1:n()) %>% 
+  select (Participant, actions) %>% 
+  filter (!is.na(actions))
+
+
+kable(
+  action,
+  booktabs = T, 
+  align = c('cl'),
+  linesep = "\\addlinespace",
+  caption = "'Did this workshop inspire you to take any immediate action(s)?'",
+  col.names = c("Participant", "Response")
+  ) %>%
+  column_spec (column = 2, width = "14cm") %>%
+  kable_styling(latex_options = c("HOLD_position"))
+
+```
+
+```{r best_parts table, include = TRUE}
+
+best <- df %>% 
+    mutate(Participant = 1:n()) %>% 
+  select (Participant, best_parts) %>% 
+  filter (!is.na(best_parts))
+
+kable(
+  best,
+    booktabs = T, 
+  align = c('cl'),
+  linesep = "\\addlinespace",
+  caption = "'What were the best parts of the workshop?'",
+  col.names = c("Participant", "Response")
+  ) %>%
+  column_spec (column = 2, width = "14cm") %>%
+  kable_styling(latex_options = c("HOLD_position"))
+
+```
+
+
+```{r improvement table, include = TRUE}
+
+improve <- df %>% 
+    mutate(Participant = 1:n()) %>% 
+  select (Participant, improvement) %>% 
+  filter (!is.na(improvement))
+
+
+kable(
+  improve,
+    booktabs = T, 
+  align = c('cl'),
+  linesep = "\\addlinespace",
+  caption = "'Any suggestions for improvement?'",
+  col.names = c("Participant", "Response")
+  ) %>%
+  column_spec (column = 2, width = "14cm") %>%
+  kable_styling(latex_options = c("HOLD_position"))
+
+```
+
+```{r anything else table, include = TRUE}
+
+anything_else <- df %>% 
+    mutate(Participant = 1:n()) %>% 
+  select (Participant, anything_else) %>% 
+  filter (!is.na(anything_else))
+
+
+kable(
+  anything_else,
+    booktabs = T, 
+  align = c('cl'),
+  linesep = "\\addlinespace",
+  caption = "'Anything else you want us to know?'",
+  col.names = c("Participant", "Response")
+  ) %>%
+  column_spec (column = 2, width = "14cm") %>%
+  kable_styling(latex_options = c("HOLD_position"))
+
+
+```
+
+If you have any questions, please contact Dr Jen Beaudry, Manager, Researcher Training, Development and Communication in Research Development and Support. 
