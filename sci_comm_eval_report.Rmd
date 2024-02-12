@@ -98,6 +98,9 @@ df <- df %>%
 
 ```{r captions, include = FALSE}
 
+table_nums(name = "info_workshop", 
+           caption = "'What did you expect from this workshop?'")
+
 table_nums(name = "expectations", 
            caption = "'Please elaborate on how the workshop aligned with your expectations.'")
 
@@ -205,12 +208,13 @@ ratings_summary$rating_item <-
   factor (
     ratings_summary$rating_item,
     levels = c(
-  "understanding",
+  "reengagement",
   "expert",
   "engaging",
   "balance",
   "storytelling",
-  "reengagement")
+  "understanding"
+)
     )
 
 # [breadcrumb] I can delete this later, but this is useful to create the plot_labs
@@ -246,12 +250,12 @@ theme(legend.title = element_blank()) +
     coord_flip() +
   scale_x_discrete(
     labels = c(
-      "The workshop provided me with \na greater understanding of \nhow to share my research through videos",
-      "The trainer is an expert in \nthe sector",
+      "I would attend another workshop \nfrom this trainer",
+           "The trainer is an expert in \nthe sector",
       "The trainer was very engaging",
       "The workshop had a good balance \nof working time and presentation",
       "The workshop provided valuable \ninsights about storytelling",
-      "I would attend another workshop \nfrom this trainer"
+       "The workshop provided me with \na greater understanding of how to \nshare my research through videos"
  )
 ) +
   scale_y_continuous(labels = c("0", "25", "50", "75", "100"))
@@ -271,9 +275,60 @@ expect <- df %>%
 ```
 
 
+
 All respondents indicated that the program met or exceeded their expectations. 
 Of the `r nrow(df)` respondents, `r round((expect[1,2]/nrow(df))*100,2)`% indicated 
 that it exceeded their expectations. 
+
+`r table_nums("info_workshop", display = "cite")` reports what the respondents
+said they expected from the workshop. Their explanations of how the program aligned with their expectations are shown 
+in `r table_nums("expectations", display = "cite")`. 
+
+\vskip 0.3in
+
+```{r info_workshop table, include = TRUE}
+
+info_workshop <- df %>% 
+    mutate(Participant = 1:n()) %>% 
+  select (Participant, info_workshop) %>% 
+  filter (!is.na(info_workshop))
+
+
+kable(
+  info_workshop,
+  booktabs = T, 
+  align = c('cl'),
+  linesep = "\\addlinespace",
+  caption = "'What did you expect from this workshop?'",
+  col.names = c("Participant", "Response")
+  ) %>%
+  column_spec (column = 2, width = "14cm") %>%
+  kable_styling(latex_options = c("HOLD_position"))
+
+```
+
+\vskip 0.3in
+
+```{r expectations table, include = TRUE}
+
+expectations <- df %>% 
+    mutate(Participant = 1:n()) %>% 
+  select (Participant, expect_comment) %>% 
+  filter (!is.na(expect_comment))
+
+
+kable(
+  expectations,
+  booktabs = T, 
+  align = c('cl'),
+  linesep = "\\addlinespace",
+  caption = "'Please elaborate on how the workshop aligned with your expectations.'",
+  col.names = c("Participant", "Response")
+  ) %>%
+  column_spec (column = 2, width = "14cm") %>%
+  kable_styling(latex_options = c("HOLD_position"))
+
+```
 
 
 ```{r follow_up data, include = TRUE}
@@ -321,6 +376,8 @@ kable(
 
 ```
 
+\vskip 0.3in
+
 ```{r best_parts table, include = TRUE}
 
 best <- df %>% 
@@ -341,6 +398,7 @@ kable(
 
 ```
 
+\vskip 0.3in
 
 ```{r improvement table, include = TRUE}
 
@@ -362,6 +420,8 @@ kable(
   kable_styling(latex_options = c("HOLD_position"))
 
 ```
+
+\vskip 0.3in
 
 ```{r anything else table, include = TRUE}
 
@@ -385,4 +445,6 @@ kable(
 
 ```
 
-If you have any questions, please contact Dr Jen Beaudry, Manager, Researcher Training, Development and Communication in Research Development and Support. 
+If you have any questions, please contact [Dr Jen Beaudry](mailto:jen.beaudry@flinders.edu.au) 
+(Manager, Researcher Training, Development and Communication) in Research 
+Development and Support. 
